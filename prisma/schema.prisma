@@ -25,17 +25,18 @@ model User {
 }
 
 model Appeal {
-    id          String       @id @default(uuid())
-    date        DateTime     @default(now())
-    title       String
-    description String
-    files       String[]
-    status      AppealStatus @default(NEW)
-    solution    String
-    admin       User?        @relation("admin", fields: [adminId], references: [id])
-    adminId     String?
-    user        User         @relation("user", fields: [userId], references: [id])
-    userId      String
+    id           String       @id @default(uuid())
+    date         DateTime     @default(now())
+    title        String
+    description  String
+    files        String[]
+    status       AppealStatus @default(NEW)
+    solution     String?
+    dateSolution DateTime?
+    admin        User?        @relation("admin", fields: [adminId], references: [id])
+    adminId      String?
+    user         User         @relation("user", fields: [userId], references: [id])
+    userId       String
 }
 
 enum UserRole {
