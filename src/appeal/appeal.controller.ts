@@ -9,6 +9,7 @@ import { AvialableRoles, RoleGuard } from 'src/user/gurads/role.guard';
 import { UUID } from 'crypto';
 import { AppealRepository } from './repositories/appeal.repository';
 import { ResolveAppealDto } from './dto/resolve-appeal.dto';
+import { CancelAppealDto } from './dto/cancel-appeal.dto';
 
 @Controller('appeal')
 export class AppealController {
@@ -56,5 +57,17 @@ export class AppealController {
 		@UserData() admin: User
 	): Promise<Appeal> {
 		return this.appealService.resolveAppeal(id, dto, admin);
+	}
+
+	@UsePipes(ZodValidationPipe)
+	@AvialableRoles([UserRole.ADMIN])
+	@UseGuards(JwtAuthGuard, RoleGuard)
+	@Post(':id/cancel')
+	async cancelAppeal(
+		@Param('id', ParseUUIDPipe) id: UUID,
+		@Body() dto: CancelAppealDto,
+		@UserData() admin: User
+	): Promise<Appeal> {
+		return this.appealService.cancelAppeal(id, dto, admin);
 	}
 }

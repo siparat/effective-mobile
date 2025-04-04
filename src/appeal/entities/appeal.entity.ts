@@ -9,8 +9,10 @@ export class AppealEntity {
 	description: string;
 	files: string[];
 	status?: AppealStatus;
-	solution?: string;
-	dateSolution?: Date;
+	solution?: string | null;
+	dateSolution?: Date | null;
+	reasonForCancellation?: string | null;
+	dateCancellation?: Date | null;
 	admin?: UserEntity;
 	user: UserEntity;
 
@@ -21,8 +23,10 @@ export class AppealEntity {
 		this.description = appeal.description;
 		this.files = Array.isArray(appeal.files) ? appeal.files : [];
 		this.status = appeal.status;
-		this.solution = appeal.solution || undefined;
-		this.dateSolution = appeal.dateSolution ? new Date(appeal.dateSolution) : undefined;
+		this.solution = appeal.solution;
+		this.dateSolution = appeal.dateSolution && new Date(appeal.dateSolution);
+		this.reasonForCancellation = appeal.reasonForCancellation;
+		this.dateCancellation = appeal.dateCancellation && new Date(appeal.dateCancellation);
 		this.user = appeal.user;
 		this.admin = appeal.admin;
 	}
@@ -37,6 +41,8 @@ export class AppealEntity {
 			status: this.status,
 			solution: this.solution,
 			dateSolution: this.dateSolution,
+			reasonForCancellation: this.reasonForCancellation,
+			dateCancellation: this.dateCancellation,
 			adminId: this.admin?.id,
 			userId: this.user.id
 		};

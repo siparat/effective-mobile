@@ -8,6 +8,7 @@ import { UserEntity } from 'src/user/entities/user.entity';
 import { UserRepository } from 'src/user/repositories/user.repository';
 import { UserErrorMessages } from 'src/user/user.constants';
 import { ResolveAppealDto } from './dto/resolve-appeal.dto';
+import { CancelAppealDto } from './dto/cancel-appeal.dto';
 
 @Injectable()
 export class AppealService {
@@ -57,7 +58,11 @@ export class AppealService {
 			...appeal,
 			user: userEntity,
 			admin: adminEntity,
-			status: AppealStatus.IN_PROGRESS
+			status: AppealStatus.IN_PROGRESS,
+			dateSolution: null,
+			solution: null,
+			dateCancellation: null,
+			reasonForCancellation: null
 		});
 		return this.appealRepository.update(appealEntity);
 	}
@@ -88,6 +93,36 @@ export class AppealService {
 			status: AppealStatus.SOLVED,
 			solution: dto.solution,
 			dateSolution: new Date()
+		});
+		return this.appealRepository.update(appealEntity);
+	}
+
+	async cancelAppeal(appealId: string, dto: CancelAppealDto, admin: User): Promise<Appeal> {
+		const appeal = await this.appealRepository.getById(appealId);
+		if (!appeal) {
+			throw new NotFoundException(AppealErrorMessages.NOT_FOUND);
+		}
+		if (appeal.status !== AppealStatus.IN_PROGRESS) {
+			throw new ForbiddenException(AppealErrorMessages.NOT_IN_PROGRESS);
+		}
+		if (appeal.adminId !== admin.id) {
+			throw new ForbiddenException(AppealErrorMessages.NOT_OWNER);
+		}
+
+		const user = await this.userRepository.getUserById(appeal.userId);
+		if (!user) {
+			throw new NotFoundException(UserErrorMessages.NOT_FOUND);
+		}
+
+		const userEntity = UserEntity.setFromModel(user);
+		const adminEntity = UserEntity.setFromModel(admin);
+		const appealEntity = new AppealEntity({
+			...appeal,
+			user: userEntity,
+			admin: adminEntity,
+			status: AppealStatus.CANCELED,
+			reasonForCancellation: dto.reason,
+			dateCancellation: new Date()
 		});
 		return this.appealRepository.update(appealEntity);
 	}
