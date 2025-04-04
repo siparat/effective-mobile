@@ -7,9 +7,9 @@ import { AppealEntity } from '../entities/appeal.entity';
 export class AppealRepository {
 	constructor(private database: DatabaseService) {}
 
-	create(entity: AppealEntity): Promise<Appeal> {
+	async create(entity: AppealEntity): Promise<Appeal> {
 		try {
-			return this.database.appeal.create({
+			return await this.database.appeal.create({
 				data: entity.getPublicInfo<Appeal>()
 			});
 		} catch (error) {
@@ -26,5 +26,35 @@ export class AppealRepository {
 				status: { in: [AppealStatus.NEW, AppealStatus.IN_PROGRESS] }
 			}
 		});
+	}
+
+	getLast(): Promise<Appeal | null> {
+		return this.database.appeal.findFirst({
+			where: {
+				status: { in: [AppealStatus.NEW] }
+			},
+			orderBy: {
+				date: 'desc'
+			}
+		});
+	}
+
+	getById(id: string): Promise<Appeal | null> {
+		return this.database.appeal.findUnique({ where: { id } });
+	}
+
+	async takeAppeal(appeal: AppealEntity): Promise<Appeal> {
+		try {
+			return await this.database.appeal.update({
+				where: { id: appeal.id },
+				data: {
+					adminId: appeal.admin?.id,
+					status: AppealStatus.IN_PROGRESS
+				}
+			});
+		} catch (error) {
+			Logger.error(error);
+			throw error;
+		}
 	}
 }
