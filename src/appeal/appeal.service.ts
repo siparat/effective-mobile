@@ -1,4 +1,4 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { Appeal, AppealStatus, User } from '@prisma/client';
 import { CreateAppealDto } from './dto/create-appeal.dto';
 import { AppealRepository } from './repositories/appeal.repository';
@@ -7,6 +7,7 @@ import { AppealEntity } from './entities/appeal.entity';
 import { UserEntity } from 'src/user/entities/user.entity';
 import { UserRepository } from 'src/user/repositories/user.repository';
 import { UserErrorMessages } from 'src/user/user.constants';
+import { ResolveAppealDto } from './dto/resolve-appeal.dto';
 
 @Injectable()
 export class AppealService {
@@ -18,7 +19,7 @@ export class AppealService {
 	async create(dto: CreateAppealDto, user: User): Promise<Appeal> {
 		const appealWithThisName = await this.appealRepository.findUnprocessedAppealByTitle(dto.title, user.id);
 		if (appealWithThisName) {
-			throw new ConflictException(AppealErrorMessages.APPEAL_ALREADY_EXIST);
+			throw new ConflictException(AppealErrorMessages.ALREADY_EXIST);
 		}
 
 		const userEntity = UserEntity.setFromModel(user);
@@ -35,14 +36,14 @@ export class AppealService {
 			appeal = await this.appealRepository.getById(appealId);
 		}
 		if (!appeal) {
-			throw new NotFoundException(AppealErrorMessages.APPEAL_NOT_FOUND);
+			throw new NotFoundException(AppealErrorMessages.NOT_FOUND);
 		}
 
 		switch (appeal.status) {
 			case AppealStatus.IN_PROGRESS:
-				throw new ConflictException(AppealErrorMessages.APPEAL_ALREADY_IN_PROGRESS);
+				throw new ConflictException(AppealErrorMessages.ALREADY_IN_PROGRESS);
 			case AppealStatus.SOLVED:
-				throw new ConflictException(AppealErrorMessages.APPEAL_ALREADY_SOLVED);
+				throw new ConflictException(AppealErrorMessages.ALREADY_SOLVED);
 		}
 
 		const user = await this.userRepository.getUserById(appeal.userId);
@@ -58,6 +59,36 @@ export class AppealService {
 			admin: adminEntity,
 			status: AppealStatus.IN_PROGRESS
 		});
-		return this.appealRepository.takeAppeal(appealEntity);
+		return this.appealRepository.update(appealEntity);
+	}
+
+	async resolveAppeal(appealId: string, dto: ResolveAppealDto, admin: User): Promise<Appeal> {
+		const appeal = await this.appealRepository.getById(appealId);
+		if (!appeal) {
+			throw new NotFoundException(AppealErrorMessages.NOT_FOUND);
+		}
+		if (appeal.status !== AppealStatus.IN_PROGRESS) {
+			throw new ForbiddenException(AppealErrorMessages.NOT_IN_PROGRESS);
+		}
+		if (appeal.adminId !== admin.id) {
+			throw new ForbiddenException(AppealErrorMessages.NOT_OWNER);
+		}
+
+		const user = await this.userRepository.getUserById(appeal.userId);
+		if (!user) {
+			throw new NotFoundException(UserErrorMessages.NOT_FOUND);
+		}
+
+		const userEntity = UserEntity.setFromModel(user);
+		const adminEntity = UserEntity.setFromModel(admin);
+		const appealEntity = new AppealEntity({
+			...appeal,
+			user: userEntity,
+			admin: adminEntity,
+			status: AppealStatus.SOLVED,
+			solution: dto.solution,
+			dateSolution: new Date()
+		});
+		return this.appealRepository.update(appealEntity);
 	}
 }

@@ -43,14 +43,11 @@ export class AppealRepository {
 		return this.database.appeal.findUnique({ where: { id } });
 	}
 
-	async takeAppeal(appeal: AppealEntity): Promise<Appeal> {
+	async update(appeal: AppealEntity): Promise<Appeal> {
 		try {
 			return await this.database.appeal.update({
 				where: { id: appeal.id },
-				data: {
-					adminId: appeal.admin?.id,
-					status: AppealStatus.IN_PROGRESS
-				}
+				data: appeal.getPublicInfo<Appeal>()
 			});
 		} catch (error) {
 			Logger.error(error);

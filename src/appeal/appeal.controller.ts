@@ -8,6 +8,7 @@ import { ZodValidationPipe } from 'nestjs-zod';
 import { AvialableRoles, RoleGuard } from 'src/user/gurads/role.guard';
 import { UUID } from 'crypto';
 import { AppealRepository } from './repositories/appeal.repository';
+import { ResolveAppealDto } from './dto/resolve-appeal.dto';
 
 @Controller('appeal')
 export class AppealController {
@@ -26,16 +27,16 @@ export class AppealController {
 
 	@AvialableRoles([UserRole.ADMIN])
 	@UseGuards(JwtAuthGuard, RoleGuard)
-	@Post('take/last')
+	@Post('last/take')
 	async takeLastAppeal(@UserData() user: User): Promise<Appeal> {
 		return this.appealService.takeAppeal('last', user);
 	}
 
 	@AvialableRoles([UserRole.ADMIN])
 	@UseGuards(JwtAuthGuard, RoleGuard)
-	@Post('take/:id')
-	async takeAppealById(@Param('id', ParseUUIDPipe) id: UUID, @UserData() user: User): Promise<Appeal> {
-		return this.appealService.takeAppeal(id, user);
+	@Post(':id/take')
+	async takeAppealById(@Param('id', ParseUUIDPipe) id: UUID, @UserData() admin: User): Promise<Appeal> {
+		return this.appealService.takeAppeal(id, admin);
 	}
 
 	@AvialableRoles([UserRole.ADMIN])
@@ -43,5 +44,17 @@ export class AppealController {
 	@Get(':id')
 	async getById(@Param('id', ParseUUIDPipe) id: UUID): Promise<Appeal | null> {
 		return this.appealRepository.getById(id);
+	}
+
+	@UsePipes(ZodValidationPipe)
+	@AvialableRoles([UserRole.ADMIN])
+	@UseGuards(JwtAuthGuard, RoleGuard)
+	@Post(':id/resolve')
+	async resolveAppeal(
+		@Param('id', ParseUUIDPipe) id: UUID,
+		@Body() dto: ResolveAppealDto,
+		@UserData() admin: User
+	): Promise<Appeal> {
+		return this.appealService.resolveAppeal(id, dto, admin);
 	}
 }
