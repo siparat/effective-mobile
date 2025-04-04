@@ -12,12 +12,13 @@ export class UserEntity {
 		this.passwordHash = passwordHash;
 	}
 
-	setFromModel(user: User): this {
-		this.id = user.id;
-		this.email = user.email;
-		this.passwordHash = user.passwordHash;
-		this.role = user.role;
-		return this;
+	static setFromModel(user: User): UserEntity {
+		const userEntity = new UserEntity(user.email, user.passwordHash);
+		userEntity.id = user.id;
+		userEntity.email = user.email;
+		userEntity.passwordHash = user.passwordHash;
+		userEntity.role = user.role;
+		return userEntity;
 	}
 
 	async setPassword(password: string): Promise<this> {

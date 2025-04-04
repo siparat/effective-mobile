@@ -33,8 +33,7 @@ export class AuthService {
 		if (!user) {
 			throw new NotFoundException(UserErrorMessages.NOT_FOUND);
 		}
-		const userEntity = new UserEntity('', '');
-		userEntity.setFromModel(user);
+		const userEntity = UserEntity.setFromModel(user);
 		const isCorrectPassword = await userEntity.comparePassword(password);
 		if (!isCorrectPassword) {
 			throw new BadRequestException(AuthErrorMessages.WRONG_PASSWORD);
