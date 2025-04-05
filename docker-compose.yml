@@ -1,5 +1,21 @@
 version: '3.8'
 services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: api
+    ports:
+      - 3000:3000
+    volumes:
+      - ./.env:/opt/app/.env
+      - uploads_data:/opt/app/uploads
+    restart: always
+    depends_on:
+      - db
+    networks:
+      - main
+
   db:
     image: postgres:17.4
     container_name: db
@@ -10,6 +26,14 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     restart: always
+    networks:
+      - main
+
+networks:
+  main:
+    driver: bridge
 
 volumes:
   postgres_data:
+
+  uploads_data:
