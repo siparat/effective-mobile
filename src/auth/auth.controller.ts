@@ -2,12 +2,13 @@ import { Body, Controller, Get, Post, UnprocessableEntityException, UseGuards, U
 import { RegisterDto } from './dto/register.dto';
 import { ZodValidationPipe } from 'nestjs-zod';
 import { AuthService } from './auth.service';
-import { User } from '@prisma/client';
+import { User, UserRole } from '@prisma/client';
 import { LoginDto } from './dto/login.dto';
-import { AuthErrorMessages } from './auth.constants';
 import { LoginResponse } from './auth.interfaces';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { UserData } from 'src/user/decorators/user.decorator';
+import { UserErrorMessages } from 'src/user/user.constants';
+import { AvialableRoles, RoleGuard } from 'src/user/gurads/role.guard';
 
 @Controller('auth')
 export class AuthController {
@@ -24,13 +25,14 @@ export class AuthController {
 	async login(@Body() { email, password }: LoginDto): Promise<LoginResponse> {
 		const userEntity = await this.authService.validateUser(email, password);
 		if (!userEntity.id) {
-			throw new UnprocessableEntityException(AuthErrorMessages.WRONG_ENTITY);
+			throw new UnprocessableEntityException(UserErrorMessages.WRONG_ENTITY);
 		}
 		const token = await this.authService.signToken(userEntity.id);
 		return { token };
 	}
 
-	@UseGuards(JwtAuthGuard)
+	@UseGuards(JwtAuthGuard, RoleGuard)
+	@AvialableRoles([UserRole.ADMIN])
 	@Get('info')
 	getInfo(@UserData() user: User): User {
 		return user;

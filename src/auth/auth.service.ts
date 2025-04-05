@@ -6,6 +6,7 @@ import { User } from '@prisma/client';
 import { RegisterDto } from './dto/register.dto';
 import { UserEntity } from 'src/user/entities/user.entity';
 import { AuthErrorMessages } from './auth.constants';
+import { UserErrorMessages } from 'src/user/user.constants';
 
 @Injectable()
 export class AuthService {
@@ -30,10 +31,9 @@ export class AuthService {
 	async validateUser(email: string, password: string): Promise<UserEntity> {
 		const user = await this.userRepository.getUserByEmail(email);
 		if (!user) {
-			throw new NotFoundException(AuthErrorMessages.NOT_FOUND);
+			throw new NotFoundException(UserErrorMessages.NOT_FOUND);
 		}
-		const userEntity = new UserEntity('', '');
-		userEntity.setFromModel(user);
+		const userEntity = UserEntity.setFromModel(user);
 		const isCorrectPassword = await userEntity.comparePassword(password);
 		if (!isCorrectPassword) {
 			throw new BadRequestException(AuthErrorMessages.WRONG_PASSWORD);

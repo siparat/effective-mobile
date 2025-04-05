@@ -1,21 +1,24 @@
-import { User } from '@prisma/client';
+import { User, UserRole } from '@prisma/client';
 import { compare, hash } from 'bcrypt';
 
 export class UserEntity {
 	id?: string;
 	email: string;
 	passwordHash: string;
+	role: UserRole;
 
 	constructor(email: string, passwordHash: string) {
 		this.email = email;
 		this.passwordHash = passwordHash;
 	}
 
-	setFromModel(user: User): this {
-		this.id = user.id;
-		this.email = user.email;
-		this.passwordHash = user.passwordHash;
-		return this;
+	static setFromModel(user: User): UserEntity {
+		const userEntity = new UserEntity(user.email, user.passwordHash);
+		userEntity.id = user.id;
+		userEntity.email = user.email;
+		userEntity.passwordHash = user.passwordHash;
+		userEntity.role = user.role;
+		return userEntity;
 	}
 
 	async setPassword(password: string): Promise<this> {
