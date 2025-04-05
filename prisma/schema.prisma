@@ -5,10 +5,30 @@
 // Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
 
 generator client {
-  provider = "prisma-client-js"
+    provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
+}
+
+model Appeal {
+    id                    String       @id @default(uuid())
+    date                  DateTime     @default(now())
+    title                 String
+    description           String
+    files                 String[]
+    status                AppealStatus @default(NEW)
+    solution              String?
+    dateSolution          DateTime?
+    reasonForCancellation String?
+    dateCancellation      DateTime?
+}
+
+enum AppealStatus {
+    NEW
+    IN_PROGRESS
+    SOLVED
+    CANCELED
 }
