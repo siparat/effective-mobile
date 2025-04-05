@@ -121,7 +121,7 @@ export class AppealService {
 			user: userEntity,
 			admin: adminEntity,
 			status: AppealStatus.CANCELED,
-			reasonForCancellation: dto.reason,
+			reasonForCancellation: dto.reason || null,
 			dateCancellation: new Date()
 		});
 		return this.appealRepository.update(appealEntity);
