@@ -8,17 +8,13 @@ import {
 	Post,
 	Query,
 	UploadedFiles,
-	UseGuards,
 	UseInterceptors,
 	UsePipes
 } from '@nestjs/common';
-import { Appeal, User, UserRole } from '@prisma/client';
+import { Appeal } from '@prisma/client';
 import { CreateAppealDto } from './dto/create-appeal.dto';
-import { UserData } from 'src/user/decorators/user.decorator';
-import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { AppealService } from './appeal.service';
 import { ZodValidationPipe } from 'nestjs-zod';
-import { AvialableRoles, RoleGuard } from 'src/user/gurads/role.guard';
 import { UUID } from 'crypto';
 import { AppealRepository } from './repositories/appeal.repository';
 import { ResolveAppealDto } from './dto/resolve-appeal.dto';
@@ -37,13 +33,8 @@ export class AppealController {
 
 	@UseInterceptors(FilesInterceptor('files', 5, { limits: { fileSize: 10_485_760 } }))
 	@UsePipes(ZodValidationPipe)
-	@UseGuards(JwtAuthGuard)
 	@Post()
-	async create(
-		@Body() dto: CreateAppealDto,
-		@UserData() user: User,
-		@UploadedFiles() files?: Express.Multer.File[]
-	): Promise<Appeal> {
+	async create(@Body() dto: CreateAppealDto, @UploadedFiles() files?: Express.Multer.File[]): Promise<Appeal> {
 		const filePaths: string[] = [];
 
 		for (const file of files || []) {
@@ -52,7 +43,7 @@ export class AppealController {
 		}
 
 		try {
-			return await this.appealService.create(dto, user, filePaths);
+			return await this.appealService.create(dto, filePaths);
 		} catch (error) {
 			for (const path of filePaths) {
 				const fileName = path.split('/').pop();
@@ -65,15 +56,11 @@ export class AppealController {
 		}
 	}
 
-	@AvialableRoles([UserRole.ADMIN])
-	@UseGuards(JwtAuthGuard, RoleGuard)
 	@Post('last/take')
-	async takeLastAppeal(@UserData() user: User): Promise<Appeal> {
-		return this.appealService.takeAppeal('last', user);
+	async takeLastAppeal(): Promise<Appeal> {
+		return this.appealService.takeAppeal('last');
 	}
 
-	@AvialableRoles([UserRole.ADMIN])
-	@UseGuards(JwtAuthGuard, RoleGuard)
 	@Get('list')
 	async getAppealList(
 		@Query('date', new ParseDatePipe({ optional: true })) date?: Date,
@@ -93,49 +80,31 @@ export class AppealController {
 		return this.appealRepository.getAppealList(filter);
 	}
 
-	@AvialableRoles([UserRole.ADMIN])
-	@UseGuards(JwtAuthGuard, RoleGuard)
 	@Post(':id/take')
-	async takeAppealById(@Param('id', ParseUUIDPipe) id: UUID, @UserData() admin: User): Promise<Appeal> {
-		return this.appealService.takeAppeal(id, admin);
+	async takeAppealById(@Param('id', ParseUUIDPipe) id: UUID): Promise<Appeal> {
+		return this.appealService.takeAppeal(id);
 	}
 
-	@AvialableRoles([UserRole.ADMIN])
-	@UseGuards(JwtAuthGuard, RoleGuard)
 	@Get(':id')
 	async getById(@Param('id', ParseUUIDPipe) id: UUID): Promise<Appeal | null> {
 		return this.appealRepository.getById(id);
 	}
 
 	@UsePipes(ZodValidationPipe)
-	@AvialableRoles([UserRole.ADMIN])
-	@UseGuards(JwtAuthGuard, RoleGuard)
 	@Post(':id/resolve')
-	async resolveAppeal(
-		@Param('id', ParseUUIDPipe) id: UUID,
-		@Body() dto: ResolveAppealDto,
-		@UserData() admin: User
-	): Promise<Appeal> {
-		return this.appealService.resolveAppeal(id, dto, admin);
+	async resolveAppeal(@Param('id', ParseUUIDPipe) id: UUID, @Body() dto: ResolveAppealDto): Promise<Appeal> {
+		return this.appealService.resolveAppeal(id, dto);
 	}
 
 	@UsePipes(ZodValidationPipe)
-	@AvialableRoles([UserRole.ADMIN])
-	@UseGuards(JwtAuthGuard, RoleGuard)
 	@Post(':id/cancel')
-	async cancelAppeal(
-		@Param('id', ParseUUIDPipe) id: UUID,
-		@Body() dto: CancelAppealDto,
-		@UserData() admin: User
-	): Promise<Appeal> {
-		return this.appealService.cancelAppeal(id, dto, admin);
+	async cancelAppeal(@Param('id', ParseUUIDPipe) id: UUID, @Body() dto: CancelAppealDto): Promise<Appeal> {
+		return this.appealService.cancelAppeal(id, dto);
 	}
 
 	@UsePipes(ZodValidationPipe)
-	@AvialableRoles([UserRole.ADMIN])
-	@UseGuards(JwtAuthGuard, RoleGuard)
 	@Post('cancel-all')
-	async cancelAllInProgress(@Body() dto: CancelAppealDto, @UserData() admin: User): Promise<Appeal[]> {
-		return this.appealService.cancelAllInProgressAppeals(dto, admin);
+	async cancelAllInProgress(@Body() dto: CancelAppealDto): Promise<Appeal[]> {
+		return this.appealService.cancelAllInProgressAppeals(dto);
 	}
 }

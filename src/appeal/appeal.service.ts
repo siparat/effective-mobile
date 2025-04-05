@@ -1,35 +1,28 @@
 import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
-import { Appeal, AppealStatus, User } from '@prisma/client';
+import { Appeal, AppealStatus } from '@prisma/client';
 import { CreateAppealDto } from './dto/create-appeal.dto';
 import { AppealRepository } from './repositories/appeal.repository';
 import { AppealErrorMessages } from './appeal.constants';
 import { AppealEntity } from './entities/appeal.entity';
-import { UserEntity } from 'src/user/entities/user.entity';
-import { UserRepository } from 'src/user/repositories/user.repository';
-import { UserErrorMessages } from 'src/user/user.constants';
 import { ResolveAppealDto } from './dto/resolve-appeal.dto';
 import { CancelAppealDto } from './dto/cancel-appeal.dto';
 
 @Injectable()
 export class AppealService {
-	constructor(
-		private appealRepository: AppealRepository,
-		private userRepository: UserRepository
-	) {}
+	constructor(private appealRepository: AppealRepository) {}
 
-	async create(dto: CreateAppealDto, user: User, files: string[]): Promise<Appeal> {
-		const appealWithThisName = await this.appealRepository.findUnprocessedAppealByTitle(dto.title, user.id);
+	async create(dto: CreateAppealDto, files: string[]): Promise<Appeal> {
+		const appealWithThisName = await this.appealRepository.findUnprocessedAppealByTitle(dto.title);
 		if (appealWithThisName) {
 			throw new ConflictException(AppealErrorMessages.ALREADY_EXIST);
 		}
 
-		const userEntity = UserEntity.setFromModel(user);
-		const appealEntity = new AppealEntity({ ...dto, files, user: userEntity });
+		const appealEntity = new AppealEntity({ ...dto, files });
 
 		return this.appealRepository.create(appealEntity);
 	}
 
-	async takeAppeal(appealId: 'last' | string, admin: User): Promise<Appeal> {
+	async takeAppeal(appealId: 'last' | string): Promise<Appeal> {
 		let appeal: Appeal | null = null;
 		if (appealId === 'last') {
 			appeal = await this.appealRepository.getLast();
@@ -47,17 +40,8 @@ export class AppealService {
 				throw new ConflictException(AppealErrorMessages.ALREADY_SOLVED);
 		}
 
-		const user = await this.userRepository.getUserById(appeal.userId);
-		if (!user) {
-			throw new NotFoundException(UserErrorMessages.NOT_FOUND);
-		}
-
-		const userEntity = UserEntity.setFromModel(user);
-		const adminEntity = UserEntity.setFromModel(admin);
 		const appealEntity = new AppealEntity({
 			...appeal,
-			user: userEntity,
-			admin: adminEntity,
 			status: AppealStatus.IN_PROGRESS,
 			dateSolution: null,
 			solution: null,
@@ -67,7 +51,7 @@ export class AppealService {
 		return this.appealRepository.update(appealEntity);
 	}
 
-	async resolveAppeal(appealId: string, dto: ResolveAppealDto, admin: User): Promise<Appeal> {
+	async resolveAppeal(appealId: string, dto: ResolveAppealDto): Promise<Appeal> {
 		const appeal = await this.appealRepository.getById(appealId);
 		if (!appeal) {
 			throw new NotFoundException(AppealErrorMessages.NOT_FOUND);
@@ -75,21 +59,9 @@ export class AppealService {
 		if (appeal.status !== AppealStatus.IN_PROGRESS) {
 			throw new ForbiddenException(AppealErrorMessages.NOT_IN_PROGRESS);
 		}
-		if (appeal.adminId !== admin.id) {
-			throw new ForbiddenException(AppealErrorMessages.NOT_OWNER);
-		}
 
-		const user = await this.userRepository.getUserById(appeal.userId);
-		if (!user) {
-			throw new NotFoundException(UserErrorMessages.NOT_FOUND);
-		}
-
-		const userEntity = UserEntity.setFromModel(user);
-		const adminEntity = UserEntity.setFromModel(admin);
 		const appealEntity = new AppealEntity({
 			...appeal,
-			user: userEntity,
-			admin: adminEntity,
 			status: AppealStatus.SOLVED,
 			solution: dto.solution,
 			dateSolution: new Date()
@@ -97,7 +69,7 @@ export class AppealService {
 		return this.appealRepository.update(appealEntity);
 	}
 
-	async cancelAppeal(appealId: string, dto: CancelAppealDto, admin: User): Promise<Appeal> {
+	async cancelAppeal(appealId: string, dto: CancelAppealDto): Promise<Appeal> {
 		const appeal = await this.appealRepository.getById(appealId);
 		if (!appeal) {
 			throw new NotFoundException(AppealErrorMessages.NOT_FOUND);
@@ -105,21 +77,8 @@ export class AppealService {
 		if (appeal.status !== AppealStatus.IN_PROGRESS) {
 			throw new ForbiddenException(AppealErrorMessages.NOT_IN_PROGRESS);
 		}
-		if (appeal.adminId !== admin.id) {
-			throw new ForbiddenException(AppealErrorMessages.NOT_OWNER);
-		}
-
-		const user = await this.userRepository.getUserById(appeal.userId);
-		if (!user) {
-			throw new NotFoundException(UserErrorMessages.NOT_FOUND);
-		}
-
-		const userEntity = UserEntity.setFromModel(user);
-		const adminEntity = UserEntity.setFromModel(admin);
 		const appealEntity = new AppealEntity({
 			...appeal,
-			user: userEntity,
-			admin: adminEntity,
 			status: AppealStatus.CANCELED,
 			reasonForCancellation: dto.reason || null,
 			dateCancellation: new Date()
@@ -127,26 +86,13 @@ export class AppealService {
 		return this.appealRepository.update(appealEntity);
 	}
 
-	async cancelAllInProgressAppeals(dto: CancelAppealDto, admin: User): Promise<Appeal[]> {
+	async cancelAllInProgressAppeals(dto: CancelAppealDto): Promise<Appeal[]> {
 		const appeals = await this.appealRepository.getAllInProgress();
 		const results: Appeal[] = [];
 
 		for (const appeal of appeals) {
-			if (appeal.adminId !== admin.id) {
-				continue;
-			}
-
-			const user = await this.userRepository.getUserById(appeal.userId);
-			if (!user) {
-				continue;
-			}
-
-			const userEntity = UserEntity.setFromModel(user);
-			const adminEntity = UserEntity.setFromModel(admin);
 			const appealEntity = new AppealEntity({
 				...appeal,
-				user: userEntity,
-				admin: adminEntity,
 				status: AppealStatus.CANCELED,
 				reasonForCancellation: dto.reason || null,
 				dateCancellation: new Date()

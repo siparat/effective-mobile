@@ -19,11 +19,10 @@ export class AppealRepository {
 		}
 	}
 
-	findUnprocessedAppealByTitle(title: string, userId: string): Promise<Appeal | null> {
+	findUnprocessedAppealByTitle(title: string): Promise<Appeal | null> {
 		return this.database.appeal.findFirst({
 			where: {
 				title,
-				userId,
 				status: { in: [AppealStatus.NEW, AppealStatus.IN_PROGRESS] }
 			}
 		});

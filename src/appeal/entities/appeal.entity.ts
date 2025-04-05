@@ -1,6 +1,5 @@
 import { Appeal, AppealStatus } from '@prisma/client';
 import { IAppeal } from '../appeal.interfaces';
-import { UserEntity } from 'src/user/entities/user.entity';
 
 export class AppealEntity {
 	id?: string;
@@ -13,8 +12,6 @@ export class AppealEntity {
 	dateSolution?: Date | null;
 	reasonForCancellation?: string | null;
 	dateCancellation?: Date | null;
-	admin?: UserEntity;
-	user: UserEntity;
 
 	constructor(appeal: IAppeal) {
 		this.id = appeal.id;
@@ -27,8 +24,6 @@ export class AppealEntity {
 		this.dateSolution = appeal.dateSolution && new Date(appeal.dateSolution);
 		this.reasonForCancellation = appeal.reasonForCancellation;
 		this.dateCancellation = appeal.dateCancellation && new Date(appeal.dateCancellation);
-		this.user = appeal.user;
-		this.admin = appeal.admin;
 	}
 
 	getPublicInfo<T extends Partial<Appeal>>(): T {
@@ -42,9 +37,7 @@ export class AppealEntity {
 			solution: this.solution,
 			dateSolution: this.dateSolution,
 			reasonForCancellation: this.reasonForCancellation,
-			dateCancellation: this.dateCancellation,
-			adminId: this.admin?.id,
-			userId: this.user.id
+			dateCancellation: this.dateCancellation
 		};
 
 		return object as T;
