@@ -17,14 +17,14 @@ export class AppealService {
 		private userRepository: UserRepository
 	) {}
 
-	async create(dto: CreateAppealDto, user: User): Promise<Appeal> {
+	async create(dto: CreateAppealDto, user: User, files: string[]): Promise<Appeal> {
 		const appealWithThisName = await this.appealRepository.findUnprocessedAppealByTitle(dto.title, user.id);
 		if (appealWithThisName) {
 			throw new ConflictException(AppealErrorMessages.ALREADY_EXIST);
 		}
 
 		const userEntity = UserEntity.setFromModel(user);
-		const appealEntity = new AppealEntity({ ...dto, user: userEntity });
+		const appealEntity = new AppealEntity({ ...dto, files, user: userEntity });
 
 		return this.appealRepository.create(appealEntity);
 	}

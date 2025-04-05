@@ -7,7 +7,9 @@ import {
 	ParseUUIDPipe,
 	Post,
 	Query,
+	UploadedFiles,
 	UseGuards,
+	UseInterceptors,
 	UsePipes
 } from '@nestjs/common';
 import { Appeal, User, UserRole } from '@prisma/client';
@@ -22,20 +24,45 @@ import { AppealRepository } from './repositories/appeal.repository';
 import { ResolveAppealDto } from './dto/resolve-appeal.dto';
 import { CancelAppealDto } from './dto/cancel-appeal.dto';
 import { AppealListFilters } from './appeal.interfaces';
+import { FilesInterceptor } from '@nestjs/platform-express';
+import { FileService } from 'src/file/file.service';
 
 @Controller('appeal')
 export class AppealController {
 	constructor(
 		private appealService: AppealService,
-		private appealRepository: AppealRepository
+		private appealRepository: AppealRepository,
+		private fileService: FileService
 	) {}
 
+	@UseInterceptors(FilesInterceptor('files', 5, { limits: { fileSize: 10_485_760 } }))
 	@UsePipes(ZodValidationPipe)
 	@UseGuards(JwtAuthGuard)
 	@Post()
-	async create(@Body() dto: CreateAppealDto, @UserData() user: User): Promise<Appeal> {
-		// TODO: save files;
-		return this.appealService.create(dto, user);
+	async create(
+		@Body() dto: CreateAppealDto,
+		@UserData() user: User,
+		@UploadedFiles() files?: Express.Multer.File[]
+	): Promise<Appeal> {
+		const filePaths: string[] = [];
+
+		for (const file of files || []) {
+			const response = await this.fileService.saveFile(file);
+			filePaths.push(response.path);
+		}
+
+		try {
+			return await this.appealService.create(dto, user, filePaths);
+		} catch (error) {
+			for (const path of filePaths) {
+				const fileName = path.split('/').pop();
+				if (!fileName) {
+					continue;
+				}
+				await this.fileService.removeFile(fileName);
+			}
+			throw error;
+		}
 	}
 
 	@AvialableRoles([UserRole.ADMIN])

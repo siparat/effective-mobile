@@ -4,9 +4,10 @@ import { AppealController } from './appeal.controller';
 import { AppealRepository } from './repositories/appeal.repository';
 import { DatabaseModule } from 'src/database/database.module';
 import { UserModule } from 'src/user/user.module';
+import { FileModule } from 'src/file/file.module';
 
 @Module({
-	imports: [DatabaseModule, UserModule],
+	imports: [DatabaseModule, UserModule, FileModule],
 	providers: [AppealService, AppealRepository],
 	controllers: [AppealController]
 })
