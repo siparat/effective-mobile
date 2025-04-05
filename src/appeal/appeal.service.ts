@@ -126,4 +126,35 @@ export class AppealService {
 		});
 		return this.appealRepository.update(appealEntity);
 	}
+
+	async cancelAllInProgressAppeals(dto: CancelAppealDto, admin: User): Promise<Appeal[]> {
+		const appeals = await this.appealRepository.getAllInProgress();
+		const results: Appeal[] = [];
+
+		for (const appeal of appeals) {
+			if (appeal.adminId !== admin.id) {
+				continue;
+			}
+
+			const user = await this.userRepository.getUserById(appeal.userId);
+			if (!user) {
+				continue;
+			}
+
+			const userEntity = UserEntity.setFromModel(user);
+			const adminEntity = UserEntity.setFromModel(admin);
+			const appealEntity = new AppealEntity({
+				...appeal,
+				user: userEntity,
+				admin: adminEntity,
+				status: AppealStatus.CANCELED,
+				reasonForCancellation: dto.reason || null,
+				dateCancellation: new Date()
+			});
+			const updatedAppeal = await this.appealRepository.update(appealEntity);
+			results.push(updatedAppeal);
+		}
+
+		return results;
+	}
 }

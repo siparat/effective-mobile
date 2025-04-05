@@ -130,4 +130,12 @@ export class AppealController {
 	): Promise<Appeal> {
 		return this.appealService.cancelAppeal(id, dto, admin);
 	}
+
+	@UsePipes(ZodValidationPipe)
+	@AvialableRoles([UserRole.ADMIN])
+	@UseGuards(JwtAuthGuard, RoleGuard)
+	@Post('cancel-all')
+	async cancelAllInProgress(@Body() dto: CancelAppealDto, @UserData() admin: User): Promise<Appeal[]> {
+		return this.appealService.cancelAllInProgressAppeals(dto, admin);
+	}
 }

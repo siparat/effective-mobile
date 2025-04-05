@@ -69,4 +69,12 @@ export class AppealRepository {
 			}
 		});
 	}
+
+	getAllInProgress(): Promise<Appeal[]> {
+		return this.database.appeal.findMany({
+			where: {
+				status: AppealStatus.IN_PROGRESS
+			}
+		});
+	}
 }
