@@ -17,3 +17,8 @@ export type IAppeal = Omit<
 	>,
 	'userId' | 'adminId'
 > & { user: UserEntity; admin?: UserEntity };
+
+export interface AppealListFilters {
+	startDate?: Date;
+	endDate?: Date;
+}

@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Appeal, AppealStatus } from '@prisma/client';
 import { DatabaseService } from 'src/database/database.service';
 import { AppealEntity } from '../entities/appeal.entity';
+import { AppealListFilters } from '../appeal.interfaces';
 
 @Injectable()
 export class AppealRepository {
@@ -53,5 +54,19 @@ export class AppealRepository {
 			Logger.error(error);
 			throw error;
 		}
+	}
+
+	getAppealList({ startDate: gte, endDate: lte }: AppealListFilters): Promise<Appeal[]> {
+		return this.database.appeal.findMany({
+			where: {
+				date: {
+					gte,
+					lte
+				}
+			},
+			orderBy: {
+				date: 'desc'
+			}
+		});
 	}
 }
